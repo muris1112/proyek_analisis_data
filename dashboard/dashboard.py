@@ -3,11 +3,12 @@ import seaborn as sns
 import pandas as pd
 import folium
 import streamlit as st
-from streamlit_folium import st_folium
+from streamlit_folium import st_folium,folium_static
 
 
 st.set_page_config(page_title="Dashboard Penjualan", page_icon=":bar_chart:", layout="wide")
 
+@st.cache_data
 def create_daily_orders_df(df):
     daily_orders_df = df.resample(rule='D', on='order_purchase_timestamp').agg({
         "order_id": "nunique",
@@ -29,26 +30,32 @@ def create_daily_rating_df(df,how):
         daily_rating = df.groupby("product_category_name_english")["review_score"].mean().nsmallest(5)
         return daily_rating
 
+@st.cache_data
 def get_total_rating(df):
     return df['review_score'].mean()
 
+@st.cache_data
 def create_daily_category_sales_df(df):
     cat_sale = df.groupby("product_category_name_english")["order_item_id"].count().nlargest(10)
     return cat_sale
 
+@st.cache_data
 def create_state_rating_df(df):
     state_rating = df.groupby("customer_state")["review_score"].mean().sort_values(ascending=False)
     return state_rating
 
+@st.cache_data
 def create_state_revenue_df(df):
     state_revenue = df.groupby("customer_state")['price'].sum().sort_values(ascending=False)
     return state_revenue
 
+@st.cache_data
 def create_customer_payment_type_df(df):
     cust_df = df.drop_duplicates(subset=['customer_id'])
     cust_pt = cust_df.groupby("payment_type")['customer_id'].count().sort_values(ascending=False)
     return cust_pt
 
+@st.cache_data
 def create_customer_state_origins_df(df):
     cust_df = df.drop_duplicates(subset=['customer_id'])
     cust_so = cust_df.groupby("customer_state")['customer_id'].count().sort_values(ascending=False)
@@ -260,4 +267,4 @@ with tab3:
     # memanggil fungsi create_customer_map untuk membuat file map.html yang sudah update
     #create_customer_map(filtered)
     #st.components.v1.html(open("dashboard/map.html", "r").read(), width=700, height=500)
-    st_folium(create_customer_map(filtered),width=500)
+    folium_static(create_customer_map(filtered),width=700)
