@@ -169,14 +169,14 @@ st.pyplot(fig)
 
 st.markdown("---")
 
-st.subheader("Top 10 State dengan Revenue Tertinggi")
+st.subheader("State dengan Revenue Tertinggi")
 
 fig, ax = plt.subplots(figsize=(45,15))
 sns.barplot(x=state_revenue.index,y=state_revenue.values,palette=colors)
 sns.despine()
 ax.set_ylabel(None)
 ax.set_xlabel("Kategori", fontsize=30)
-ax.set_title("Top 10 Kategori dengan Penjualan Terbanyak", loc="center", fontsize=50)
+ax.set_title("State dengan Revenue Tertinggi", loc="center", fontsize=50)
 ax.tick_params(axis='y', labelsize=35)
 ax.tick_params(axis='x', labelsize=30)
 ax.set_xticklabels(labels=state_revenue.index,rotation="vertical")
