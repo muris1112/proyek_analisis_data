@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import folium
 import streamlit as st
 
 
@@ -18,10 +19,6 @@ def create_daily_orders_df(df):
     }, inplace=True)
     return daily_orders_df
 
-#def create_sum_order_category_df(df):
- #   sum_order_items_df = df.groupby("product_category_name_english").quantity_x.sum().sort_values(ascending=False).reset_index()
-  #  return sum_order_items_df
-
 def create_daily_rating_df(df,how):
     if how:
         daily_rating = df.groupby("product_category_name_english")["review_score"].mean().nlargest(5)
@@ -37,8 +34,44 @@ def create_daily_category_sales_df(df):
     cat_sale = df.groupby("product_category_name_english")["order_item_id"].count().nlargest(10)
     return cat_sale
 
+def create_state_rating_df(df):
+    state_rating = df.groupby("customer_state")["review_score"].mean().sort_values(ascending=False)
+    return state_rating
 
-core_data = pd.read_csv("../sales_seller_customer_reviews_data.csv")
+def create_state_revenue_df(df):
+    state_revenue = df.groupby("customer_state")['price'].sum().sort_values(ascending=False)
+    return state_revenue
+
+def create_customer_payment_type_df(df):
+    cust_df = df.drop_duplicates(subset=['customer_id'])
+    cust_pt = cust_df.groupby("payment_type")['customer_id'].count().sort_values(ascending=False)
+    return cust_pt
+
+def create_customer_state_origins_df(df):
+    cust_df = df.drop_duplicates(subset=['customer_id'])
+    cust_so = cust_df.groupby("customer_state")['customer_id'].count().sort_values(ascending=False)
+    return cust_so
+
+def create_customer_map(df):
+    m = folium.Map(location=[-14.2350, -51.9253], zoom_start=4)
+    df.drop_duplicates(subset=["customer_id"],inplace=True)
+    states_df=df.groupby('customer_state').size().reset_index(name="customer_total")
+    folium.Choropleth(
+        geo_data="../brazil_geo.json", # menggunakan file JSON geografi dari Brazil, didapatkan di
+        name="choropleth",
+        data=states_df,
+        columns=["customer_state", "customer_total"], # mencari banyak pelanggan di masing-masing state menggunakan kode state
+        key_on="feature.id",
+        fill_color="YlGn",
+        fill_opacity=0.7,
+        line_opacity=.3,
+        legend_name="Penjualan di tiap state",
+    ).add_to(m)
+
+    # peta akan disimpan secara terpisah dengan format html di /dashboard/map.html
+    m.save("map.html")
+
+core_data = pd.read_csv("all_data.csv")
 #geolocation_df = pd.read_csv("data/geolocation_dataset.csv")
 
 #datetime_columns = ["order_purchase_timestamp"]
@@ -49,11 +82,11 @@ core_data["order_purchase_timestamp"] = pd.to_datetime(core_data["order_purchase
 min_date = core_data["order_purchase_timestamp"].min()
 max_date = core_data["order_purchase_timestamp"].max()
 
-logo_url = "https://github.com/dicodingacademy/assets/raw/main/logo.png"
+logo = "logo.jpg"
 
 with st.sidebar:
     # Menambahkan logo perusahaan
-    st.image(logo_url)
+    st.image(logo)
     
     # Mengambil start_date & end_date dari date_input
     start_date, end_date = st.date_input(
@@ -63,16 +96,22 @@ with st.sidebar:
         value=[min_date, max_date]
     )
 
+# filter data agar sesuai dengan range yang dipilih
 filtered = core_data[(core_data['order_purchase_timestamp']>=str(start_date)) &
                      (core_data["order_purchase_timestamp"]<=str(end_date))]
 
+#inisiasi dataframe yang diperlukan
 daily_category_sales_df = create_daily_category_sales_df(filtered)
 daily_rating_best_df = create_daily_rating_df(filtered,True)
 daily_rating_worst_df = create_daily_rating_df(filtered,False)
 daily_orders_df = create_daily_orders_df(filtered)
+state_rating = create_state_rating_df(filtered)
 total_rating = get_total_rating(filtered)
+state_revenue = create_state_revenue_df(filtered)
+customer_payment_type = create_customer_payment_type_df(filtered)
+customer_state_origins = create_customer_state_origins_df(filtered)
 
-
+#membuat header
 st.header('Dashboard Penjualan :sparkles:')
 
 col1, col2, col3 = st.columns(3)
@@ -101,14 +140,51 @@ ax.tick_params(axis='x', labelsize=15)
 
 st.pyplot(fig)
 
-st.subheader("Total Penjualan di Tiap Kategori")
+colors = "flare"
+st.markdown("---")
+st.subheader("Top 10 Kategori dengan Penjualan Tertinggi")
 
-fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(35, 15))
+fig, ax = plt.subplots(figsize=(45,15))
+sns.barplot(x=daily_category_sales_df.index,y=daily_category_sales_df.values,palette=colors)
+sns.despine()
+ax.set_ylabel(None)
+ax.set_xlabel("Kategori", fontsize=30)
+ax.set_title("Top 10 Kategori dengan Penjualan Terbanyak", loc="center", fontsize=50)
+ax.tick_params(axis='y', labelsize=35)
+ax.tick_params(axis='x', labelsize=30)
+ax.set_xticklabels(labels=daily_category_sales_df.index,rotation="vertical")
 
-colors = "flare"#["#90CAF9", "#D3D3D3", "#D3D3D3", "#D3D3D3", "#D3D3D3"]
+st.pyplot(fig)
+
+st.markdown("---")
+
+st.subheader("Top 10 State dengan Revenue Tertinggi")
+
+fig, ax = plt.subplots(figsize=(45,15))
+sns.barplot(x=state_revenue.index,y=state_revenue.values,palette=colors)
+sns.despine()
+ax.set_ylabel(None)
+ax.set_xlabel("Kategori", fontsize=30)
+ax.set_title("Top 10 Kategori dengan Penjualan Terbanyak", loc="center", fontsize=50)
+ax.tick_params(axis='y', labelsize=35)
+ax.tick_params(axis='x', labelsize=30)
+ax.set_xticklabels(labels=state_revenue.index,rotation="vertical")
+
+st.pyplot(fig)
+
+st.markdown("---")
+
+st.subheader("Kategori dengan Rating Terbaik dan Terburuk")
+
+fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(45, 15))
+colors = "flare"
+
+yticks_rating = [1,2,3,4,5]
 
 sns.barplot(x=daily_rating_best_df.index, y=daily_rating_best_df.values, palette=colors, ax=ax[0])
-ax[0].set_ylabel(None)
+sns.despine()
+ax[0].set_ylabel("Rating", fontsize=30)
+ax[0].set_yticks(yticks_rating)
 ax[0].set_xlabel("Category", fontsize=30)
 ax[0].set_title("Best Rated Product", loc="center", fontsize=50)
 ax[0].tick_params(axis='y', labelsize=35)
@@ -116,14 +192,67 @@ ax[0].tick_params(axis='x', labelsize=30)
 ax[0].set_xticklabels(labels=daily_rating_best_df.index,rotation="vertical")
 
 sns.barplot(x=daily_rating_worst_df.index, y=daily_rating_worst_df.values, palette="flare_r", ax=ax[1])
-ax[1].set_ylabel(None)
+ax[1].set_ylabel("Rating", fontsize=30)
+ax[1].set_yticks(yticks_rating)
 ax[1].set_xlabel("Category", fontsize=30)
 ax[1].invert_xaxis()
-ax[1].yaxis.set_label_position("right")
-ax[1].yaxis.tick_right()
+ax[1].yaxis.set_label_position("left")
+ax[1].yaxis.tick_left()
 ax[1].set_title("Worst Rated Product", loc="center", fontsize=50)
 ax[1].tick_params(axis='y', labelsize=35)
 ax[1].tick_params(axis='x', labelsize=30)
 ax[1].set_xticklabels(labels=daily_rating_worst_df.index,rotation="vertical")
 
 st.pyplot(fig)
+
+st.markdown("---")
+
+st.subheader("Rerata Rating di Tiap State")
+fig, ax = plt.subplots(figsize=(45,15))
+
+sns.barplot(x=state_rating.index,y=state_rating.values,palette=colors)
+ax.set_ylabel(None)
+ax.set_yticks(yticks_rating)
+ax.set_xlabel("Kategori", fontsize=30)
+ax.set_title("Rata-rata Rating di Tiap State", loc="center", fontsize=50)
+ax.tick_params(axis='y', labelsize=35)
+ax.tick_params(axis='x', labelsize=30)
+ax.set_xticklabels(labels=state_rating.index,rotation="vertical")
+
+st.pyplot(fig)
+
+st.markdown("---")
+
+tab1,tab2,tab3 = st.tabs(["Tipe Pembayaran","Asal Pelanggan","Peta Pelanggan"])
+
+with tab1:
+    st.subheader("Tipe Pembayaran yang Dipilih Pelanggan")
+    fig, ax = plt.subplots(figsize=(45,15))
+
+    sns.barplot(x=customer_payment_type.index,y=customer_payment_type.values,palette=colors)
+    ax.set_ylabel(None)
+    ax.set_xlabel("Tipe Pembayaran", fontsize=30)
+    ax.set_title("Tipe Pembayaran yang Dipilih Pelanggan", loc="center", fontsize=50)
+    ax.tick_params(axis='y', labelsize=35)
+    ax.tick_params(axis='x', labelsize=30)
+    ax.set_xticklabels(labels=customer_payment_type.index,rotation="vertical")
+    st.pyplot(fig)
+
+with tab2:
+    st.subheader("State Asal Pelanggan")
+    fig, ax = plt.subplots(figsize=(45,15))
+
+    sns.barplot(x=customer_state_origins.index,y=customer_state_origins.values,palette=colors)
+    ax.set_ylabel(None)
+    ax.set_xlabel("State", fontsize=30)
+    ax.set_title("State Asal Pelanggan", loc="center", fontsize=50)
+    ax.tick_params(axis='y', labelsize=35)
+    ax.tick_params(axis='x', labelsize=30)
+    ax.set_xticklabels(labels=customer_state_origins.index,rotation="vertical")
+    st.pyplot(fig)
+
+with tab3:
+    st.subheader("Peta Pelanggan")
+    # memanggil fungsi create_customer_map untuk membuat file map.html yang sudah update
+    create_customer_map(filtered)
+    st.components.v1.html(open("map.html", "r").read(), width=700, height=500)
