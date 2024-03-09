@@ -69,7 +69,7 @@ def create_customer_map(df):
     ).add_to(m)
 
     # peta akan disimpan secara terpisah dengan format html di /dashboard/map.html
-    m.save("map.html")
+    m.save("dashboard/map.html")
 
 core_data = pd.read_csv("dashboard/all_data.csv")
 core_data.sort_values(by="order_purchase_timestamp", inplace=True)
