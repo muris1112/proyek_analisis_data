@@ -74,7 +74,12 @@ def create_customer_map(df):
     #m.save("dashboard/map.html")
     return m
 
-core_data = pd.read_csv("dashboard/all_data.csv")
+@st.cache_data
+def load_core_data():
+    return pd.read_csv("dashboard/all_data.csv")
+
+core_data = load_core_data()
+st.dataframe(core_data)
 core_data.sort_values(by="order_purchase_timestamp", inplace=True)
 core_data.reset_index(inplace=True)
 core_data["order_purchase_timestamp"] = pd.to_datetime(core_data["order_purchase_timestamp"])
