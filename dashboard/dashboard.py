@@ -3,7 +3,7 @@ import seaborn as sns
 import pandas as pd
 import folium
 import streamlit as st
-from streamlit_folium import st_folium,folium_static
+from streamlit_folium import folium_static
 
 
 st.set_page_config(page_title="Dashboard Penjualan", page_icon=":bar_chart:", layout="wide")
@@ -77,8 +77,6 @@ def create_customer_map(df):
         legend_name="Penjualan di tiap state",
     ).add_to(m)
 
-    # peta akan disimpan secara terpisah dengan format html di /dashboard/map.html
-    #m.save("dashboard/map.html")
     return m
 
 @st.cache_data
@@ -264,7 +262,5 @@ with tab2:
 
 with tab3:
     st.subheader("Peta Pelanggan")
-    # memanggil fungsi create_customer_map untuk membuat file map.html yang sudah update
-    #create_customer_map(filtered)
-    #st.components.v1.html(open("dashboard/map.html", "r").read(), width=700, height=500)
+    #gunakan folium_static untuk menampilkan map folium
     folium_static(create_customer_map(filtered),width=700)
