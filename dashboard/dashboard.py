@@ -3,6 +3,7 @@ import seaborn as sns
 import pandas as pd
 import folium
 import streamlit as st
+from streamlit_folium import st_folium
 
 
 st.set_page_config(page_title="Dashboard Penjualan", page_icon=":bar_chart:", layout="wide")
@@ -19,6 +20,7 @@ def create_daily_orders_df(df):
     }, inplace=True)
     return daily_orders_df
 
+@st.cache_data
 def create_daily_rating_df(df,how):
     if how:
         daily_rating = df.groupby("product_category_name_english")["review_score"].mean().nlargest(5)
@@ -69,7 +71,8 @@ def create_customer_map(df):
     ).add_to(m)
 
     # peta akan disimpan secara terpisah dengan format html di /dashboard/map.html
-    m.save("dashboard/map.html")
+    #m.save("dashboard/map.html")
+    return m
 
 core_data = pd.read_csv("dashboard/all_data.csv")
 core_data.sort_values(by="order_purchase_timestamp", inplace=True)
@@ -251,5 +254,6 @@ with tab2:
 with tab3:
     st.subheader("Peta Pelanggan")
     # memanggil fungsi create_customer_map untuk membuat file map.html yang sudah update
-    create_customer_map(filtered)
-    st.components.v1.html(open("dashboard/map.html", "r").read(), width=700, height=500)
+    #create_customer_map(filtered)
+    #st.components.v1.html(open("dashboard/map.html", "r").read(), width=700, height=500)
+    st_folium(create_customer_map(filtered),width=500)
