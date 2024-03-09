@@ -57,7 +57,7 @@ def create_customer_map(df):
     df.drop_duplicates(subset=["customer_id"],inplace=True)
     states_df=df.groupby('customer_state').size().reset_index(name="customer_total")
     folium.Choropleth(
-        geo_data="../brazil_geo.json", # menggunakan file JSON geografi dari Brazil, didapatkan di
+        geo_data="brazil_geo.json", # menggunakan file JSON geografi dari Brazil, didapatkan di
         name="choropleth",
         data=states_df,
         columns=["customer_state", "customer_total"], # mencari banyak pelanggan di masing-masing state menggunakan kode state
@@ -71,10 +71,7 @@ def create_customer_map(df):
     # peta akan disimpan secara terpisah dengan format html di /dashboard/map.html
     m.save("map.html")
 
-core_data = pd.read_csv("all_data.csv")
-#geolocation_df = pd.read_csv("data/geolocation_dataset.csv")
-
-#datetime_columns = ["order_purchase_timestamp"]
+core_data = pd.read_csv("dashboard/all_data.csv")
 core_data.sort_values(by="order_purchase_timestamp", inplace=True)
 core_data.reset_index(inplace=True)
 core_data["order_purchase_timestamp"] = pd.to_datetime(core_data["order_purchase_timestamp"])
@@ -82,7 +79,7 @@ core_data["order_purchase_timestamp"] = pd.to_datetime(core_data["order_purchase
 min_date = core_data["order_purchase_timestamp"].min()
 max_date = core_data["order_purchase_timestamp"].max()
 
-logo = "logo.jpg"
+logo = "dashboard/logo.jpg"
 
 with st.sidebar:
     # Menambahkan logo perusahaan
@@ -255,4 +252,4 @@ with tab3:
     st.subheader("Peta Pelanggan")
     # memanggil fungsi create_customer_map untuk membuat file map.html yang sudah update
     create_customer_map(filtered)
-    st.components.v1.html(open("map.html", "r").read(), width=700, height=500)
+    st.components.v1.html(open("dashboard/map.html", "r").read(), width=700, height=500)
